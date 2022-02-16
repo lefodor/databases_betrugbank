@@ -1,4 +1,9 @@
---select * from generate_series(2018, 2021) as t(year);
+-- =============================================
+-- Author:      Levente Fodor
+-- Create date: 2022-02-13
+-- Description: test code
+-- 	
+-- =============================================
 
 select 23456789 as account_number
 , (random()*100 + 1)::INT 
