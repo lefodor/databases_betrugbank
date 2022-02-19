@@ -12,11 +12,11 @@ create schema if not exists dm;
 -- ----------------------------------------- dm.d_date ----------------------------------
 create table dm.d_date (
 	id serial primary key,
-	date_year INT not null,
-	date_month INT not null,
-	date_day INT not null,
-	date DATE not null,
-	is_end_of_month BOOL not null
+	date_year int not null,
+	date_month int not null,
+	date_day int not null,
+	date date not null,
+	is_end_of_month bool not null
 );
 
 insert into dm.d_date(id, date_year, date_month, date_day, date, is_end_of_month)
@@ -267,9 +267,46 @@ inner join dm.d_date dd
 on ftr.date_id = dd.id ) as cb on cb.account_number = acct.account_number and cb.end_of_month = acct.date
 order by 2,1 ;
 
+-- ----------------------------------------- dm.f_expected_payment ----------------------
+create table dm.f_expected_payment (
+	date_id int not null,
+	end_of_month date not null,
+	account_number int not null,
+	expected_payment numeric,
+	effective_payment numeric
+);
+alter table dm.f_expected_payment add primary key ( date_id, account_number );
 
+insert into dm.f_expected_payment
+select dde.id as date_id
+	, end_of_month
+	, account_number
+	, expected_payment
+	, effective_payment
+from(
+	select (date_trunc('month', dd.date) + interval '1 month - 1 day')::date as end_of_month
+		, ftr.account_number
+		, ( sum(ftr.amount) + sign(greatest(0,random() - 0.8)) * ((random() * (98) + 2) :: int) * 1000 ) :: int as expected_payment
+		, sum(ftr.amount) as effective_payment
+	from dm.f_transactions ftr
+	inner join dm.d_date dd 
+	on ftr.date_id = dd.id 
+	group by 1,2 ) arrears 
+	inner join dm.d_date dde
+	on dde.date = arrears.end_of_month
+order by 2,3;
 
+-- ----------------------------------------- dm.f_arrears -------------------------------
+create table dm.f_arrears (
+	date_id int not null,
+	account_number int not null,
+	arrears numeric
+);
+alter table dm.f_arrears add primary key ( date_id, account_number );
 
-
-
-
+insert into dm.f_arrears
+select date_id
+	, account_number
+	, expected_payment - effective_payment as arrears
+from dm.f_expected_payment
+where expected_payment - effective_payment != 0;
