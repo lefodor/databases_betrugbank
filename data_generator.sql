@@ -72,6 +72,7 @@ create table dm.d_customer (
 	id int primary key,
 	customer_type_code varchar(2) not null,
 	customer_type_name varchar(32) not null,
+	scorecard_id int not null,
 	company_registration_number varchar(32) not null,
 	country_iso varchar(32) not null,
 	education varchar(32),
@@ -84,6 +85,7 @@ insert into dm.d_customer (
 id
 , customer_type_code
 , customer_type_name
+, scorecard_id
 , company_registration_number
 , country_iso
 , education
@@ -92,18 +94,21 @@ id
 , family_name
 )
 values
-(10001, '01', 'private individual', 'unknown', 'HU', 'university', '1984-12-01', 'levente','fodor'),
-(10002, '01', 'private individual', 'unknown', 'HU', null, '1990-06-30', 'levente','fodor2'),
-(10003, '01', 'private individual', 'unknown', 'HU', 'secondary', '2016-04-02', 'mark','fodor'),
-(20001, '02', 'micro-sme', '01-11-111111', 'HU', 'unknown', '2016-03-06', 'lebeton','ozlak'),
-(20002, '02', 'micro-sme', '01-22-222222', 'GB', 'unknown', '2010-08-07', 'error','page'),
-(20003, '02', 'micro-sme', '01-33-333333', 'DE', 'unknown', '2009-12-08', 'okos','ba'),
-(20004, '02', 'micro-sme', '01-44-444444', 'AT', 'unknown', '2011-11-09', 'keine','ahnung'),
-(30001, '03', 'corporate', '08-01-111111', 'US', 'unknown', '2000-01-06', 'id','software'),
-(30002, '03', 'corporate', '08-02-222222', 'US', 'unknown', '2018-02-28', 'jp','moogen'),
-(30003, '03', 'corporate', '08-03-333333', 'CN', 'unknown', '2019-12-08', 'import','export'),
-(40001, '04', 'government', '00-10-345678', 'HU', 'unknown', '2000-01-06', 'el','emel'),
-(40002, '04', 'government', '00-10-340000', 'AT', 'unknown', '2015-02-28', 'gruess','dich');
+(10001, '01', 'private individual', 1, 'unknown', 'HU', 'university', '1984-12-01', 'levente','fodor'),
+(10002, '01', 'private individual', 1, 'unknown', 'HU', null, '1990-06-30', 'levente','fodor2'),
+(10003, '01', 'private individual', 1, 'unknown', 'HU', 'secondary', '2016-04-02', 'mark','fodor'),
+(20001, '02', 'micro-sme', 2, '01-11-111111', 'HU', 'unknown', '2016-03-06', 'lebeton','ozlak'),
+(20002, '02', 'micro-sme', 2, '01-22-222222', 'GB', 'unknown', '2010-08-07', 'error','page'),
+(20003, '02', 'micro-sme', 2, '01-33-333333', 'DE', 'unknown', '2009-12-08', 'okos','ba'),
+(20004, '02', 'micro-sme', 2, '01-44-444444', 'AT', 'unknown', '2011-11-09', 'keine','ahnung'),
+(30001, '03', 'corporate', 3, '08-01-111111', 'US', 'unknown', '2000-01-06', 'id','software'),
+(30002, '03', 'corporate', 3, '08-02-222222', 'US', 'unknown', '2018-02-28', 'jp','moogen'),
+(30003, '03', 'corporate', 3, '08-03-333333', 'CN', 'unknown', '2019-12-08', 'import','export'),
+(40001, '04', 'government', 3, '00-10-345678', 'HU', 'unknown', '2000-01-06', 'el','ml'),
+(40002, '04', 'government', 3, '00-10-340000', 'AT', 'unknown', '2015-02-28', 'gruess','dich');
+
+alter table dm.d_customer
+add foreign key (scorecard_id) references dm.d_scorecard(id);
 
 -- ----------------------------------------- dm.d_booking_code --------------------------
 create table dm.d_booking_code (
@@ -134,6 +139,24 @@ select account_number
 	, ( random() * (43000-38000) + 38000) :: int as opening_date_id
 	, case when ( random() * (1-0) + 1) :: int = 1 then -1 else ( random() * (55100-44800) + 44800) :: int end as closing_date_id
 from dm.tmp_cust_acct ;
+
+-- ----------------------------------------- dm.d_scorecard -----------------------------
+create table dm.d_scorecard (
+	id serial primary key,
+	scorecard_name varchar(32) not null,
+	intercept numeric not null,
+	var1 numeric not null,
+	var2 numeric not null,
+	var3 numeric not null,
+	var4 numeric not null
+) ;
+
+insert into dm.d_scorecard ( id, scorecard_name, intercept, var1, var2, var3, var4 )
+values
+(1, 'private', -5.2347, -0.3935, 0.2702, 0.2636, -0.4577), 
+(2, 'sme', -2.6898, 0.4001, -0.38239, 0.02428, -0.20916),
+(3, 'corporate', -3.87972, -1.7869, -0.9631, -0.4121, -1.6514) ;
+
 
 -- ----------------------------------------- dm.f_transactions --------------------------
 /*
@@ -310,3 +333,44 @@ select date_id
 	, expected_payment - effective_payment as arrears
 from dm.f_expected_payment
 where expected_payment - effective_payment != 0;
+
+-- ----------------------------------------- dm.f_scoring -------------------------------
+create table dm.f_scoring (
+	date_id int not null,
+	customer_id int not null,
+	scorecard_id int not null,
+	var1 numeric,
+	var2 numeric,
+	var3 numeric,
+	var4 numeric
+) ;
+
+insert into dm.f_scoring
+select dd.id as date_id
+	, dc.id as customer_id
+	, dc.scorecard_id
+	, random() * (3) - 1 as var1
+	, random() * (.5) - 2 as var2
+	, random() * (.2) + 3 as var3
+	, random() * (.3) - 1 as var4
+from dm.d_date dd
+cross join dm.d_customer dc
+inner join dm.d_scorecard ds on ds.id = dc.scorecard_id
+where dd.id in (44285, 44315, 44346) ;
+
+/*
+select fs.*
+	, exp(ds.intercept + fs.var1 + fs.var2 + fs.var3 + fs.var4) / (1 + exp(ds.intercept + fs.var1 + fs.var2 + fs.var3 + fs.var4)) as prob
+from dm.f_scoring fs
+inner join dm.d_scorecard ds on ds.id = fs.scorecard_id
+order by exp(ds.intercept + fs.var1 + fs.var2 + fs.var3 + fs.var4) / (1 + exp(ds.intercept + fs.var1 + fs.var2 + fs.var3 + fs.var4)) desc
+;
+*/
+
+
+
+
+
+
+
+
