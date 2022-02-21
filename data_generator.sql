@@ -237,6 +237,7 @@ cross join generate_series(-50,150) as t(amt) ;
 */
 
 -- ----------------------------------------- dm.f_account -------------------------------
+drop table dm.f_account;
 create table dm.f_account (
 	date_id int not null,
 	account_number int not null,
@@ -254,8 +255,8 @@ select
 	, acct.interest_rate_id
 	, acct.ob + cb.cum_balance_delta as balance
 from (
-select tmp.account_number
-	, tmp.customer_id
+select tmp_lt0.account_number
+	, tmp_lt0.customer_id
 	, da.account_type_id
 	, case 
 		when da.account_type_id = 1  then ( random() * (25-1) + 1 ) :: int
@@ -272,9 +273,10 @@ select tmp.account_number
 		when snap = 0 then '2021-03-31'
 		when snap = 1 then '2021-04-30'
 		when snap = 2 then '2021-05-31' end ) :: date as date
-	, tmp.ob
-from ( select *, ( random() * (20000000) - 10000000 ) :: int as ob from dm.tmp_cust_acct ) tmp
-inner join dm.d_account da on da.account_number = tmp.account_number
+	, case when da.account_type_id in (1,2) then tmp_lt0.ob else tmp_gt0.ob end as ob
+from ( select *, ( random() * (2e7-1e5) - 3e7 ) :: int as ob from dm.tmp_cust_acct ) tmp_lt0
+inner join ( select *, ( random() * (2e7-1e5) + 1e6 ) :: int as ob from dm.tmp_cust_acct ) tmp_gt0 on tmp_gt0.customer_id = tmp_lt0.customer_id and tmp_gt0.account_number = tmp_lt0.account_number
+inner join dm.d_account da on da.account_number = tmp_lt0.account_number
 inner join dm.d_account_type dat on da.account_type_id = dat.id 
 cross join (select snap from generate_series(0,2) as snap) s
 ) acct
