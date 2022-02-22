@@ -106,9 +106,6 @@ values
 (40001, '04', 'government', 3, '00-10-345678', 'HU', 'unknown', '2000-01-06', 'el','ml'),
 (40002, '04', 'government', 3, '00-10-340000', 'AT', 'unknown', '2015-02-28', 'gruess','dich');
 
-alter table dm.d_customer
-add foreign key (scorecard_id) references dm.d_scorecard(id);
-
 -- ----------------------------------------- dm.d_booking_code --------------------------
 create table dm.d_booking_code (
 	id serial primary key,
@@ -194,7 +191,7 @@ create table dm.f_transactions (
 	id serial primary key,
 	date_id int not null,
 	account_number bigint not null,
-	booking_code varchar(2) not null,
+	booking_code int not null,
 	amount bigint
 );
 
@@ -228,7 +225,7 @@ insert into dm.f_transactions
 select row_number() over (order by amt) as id
 , RandomGet() as date_id
 , account_number
-, case when amt < 0 then '05' else concat(0, ( random()*3+1 )::INT ) end as booking_code
+, case when amt < 0 then 5 else ( random()*3+1 )::INT end as booking_code
 , trunc(((random()*100000 + 1) * sign(amt))::decimal,2) as amount
 from 
 (select distinct customer_id, account_number from dm.b_cust_acct order by 1) as c
@@ -290,6 +287,7 @@ from dm.f_transactions ftr
 inner join dm.d_date dd 
 on ftr.date_id = dd.id ) as cb on cb.account_number = acct.account_number and cb.end_of_month = acct.date
 order by 2,1 ;
+
 
 -- ----------------------------------------- dm.f_expected_payment ----------------------
 create table dm.f_expected_payment (
@@ -368,10 +366,36 @@ order by exp(ds.intercept + fs.var1 + fs.var2 + fs.var3 + fs.var4) / (1 + exp(ds
 ;
 */
 
+-- ----------------------------------------- dm.d_account -------------------------------
+alter table dm.d_account
+add foreign key (account_type_id) references dm.d_account_type(id);
 
+-- ----------------------------------------- dm.d_customer ------------------------------
+alter table dm.d_customer
+add foreign key (scorecard_id) references dm.d_scorecard(id);
 
+-- ----------------------------------------- dm.f_account -------------------------------
+alter table dm.f_account
+add foreign key (date_id) references dm.d_date(id);
 
+alter table dm.f_account
+add foreign key (account_number) references dm.b_cust_acct(account_number);
 
+alter table dm.f_account
+add foreign key (interest_rate_id) references dm.d_interest_rate(id);
 
+-- ----------------------------------------- dm.f_transactions --------------------------
+alter table dm.f_transactions
+add foreign key (date_id) references dm.d_date(id);
 
+alter table dm.f_transactions
+add foreign key (account_number) references dm.b_cust_acct(account_number);
 
+alter table dm.f_transactions
+add foreign key (booking_code_id) references dm.d_booking_code(id);
+
+-- ----------------------------------------- dm.f_expected_payment ----------------------
+
+-- ----------------------------------------- dm.f_arrears -------------------------------
+
+-- ----------------------------------------- dm.f_scoring -------------------------------
