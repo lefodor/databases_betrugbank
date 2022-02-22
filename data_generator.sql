@@ -370,6 +370,9 @@ order by exp(ds.intercept + fs.var1 + fs.var2 + fs.var3 + fs.var4) / (1 + exp(ds
 alter table dm.d_account
 add foreign key (account_type_id) references dm.d_account_type(id);
 
+alter table dm.d_account
+add foreign key (account_number) references dm.b_cust_acct(account_number);
+
 -- ----------------------------------------- dm.d_customer ------------------------------
 alter table dm.d_customer
 add foreign key (scorecard_id) references dm.d_scorecard(id);
@@ -395,7 +398,26 @@ alter table dm.f_transactions
 add foreign key (booking_code_id) references dm.d_booking_code(id);
 
 -- ----------------------------------------- dm.f_expected_payment ----------------------
+alter table dm.f_expected_payment
+add foreign key (date_id) references dm.d_date(id);
+
+alter table dm.f_expected_payment
+add foreign key (account_number) references dm.b_cust_acct(account_number);
 
 -- ----------------------------------------- dm.f_arrears -------------------------------
+alter table dm.f_arrears
+add foreign key (date_id) references dm.d_date(id);
+
+alter table dm.f_arrears
+add foreign key (account_number) references dm.b_cust_acct(account_number);
 
 -- ----------------------------------------- dm.f_scoring -------------------------------
+alter table dm.f_scoring
+add foreign key (date_id) references dm.d_date(id);
+
+alter table dm.f_scoring
+add foreign key (customer_id) references dm.d_customer(id);
+
+alter table dm.f_scoring
+add foreign key (scorecard_id) references dm.d_scorecard(id);
+
