@@ -261,7 +261,7 @@ inner join dm.d_account da on da.account_number = fa.account_number
 inner join dm.d_account_type dat on dat.id = da.account_type_id 
 inner join dm.d_customer dc on dc.id = fs.customer_id
 inner join dm.d_interest_rate dir on dir.id = fa.interest_rate_id
-where dd.date='2021-04-30'
+where dd.date >= '2021-03-31' and dd.date <= '2021-05-31'
 and dat.name not in('bankaccount','savingaccount')) v
 group by account_type_name ;
 
