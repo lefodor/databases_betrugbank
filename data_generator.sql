@@ -52,7 +52,6 @@ select row_number() over (order by interest_rate) as id
 from generate_series(1,10000) as t(interest_rate);
 
 -- ----------------------------------------- dm.d_account_type --------------------------
---drop table dm.d_account_type;
 create table dm.d_account_type (
 	id serial primary key,
 	shortname varchar(5) not null,
@@ -65,7 +64,7 @@ values
 (2,'S', 'savingaccount'),
 (3,'HL', 'housingloan'),
 (4,'PL', 'personalloan'),
-(5,'CL', 'creditloan');
+(5,'CL', 'creditcard');
 
 -- ----------------------------------------- dm.d_customer ------------------------------
 create table dm.d_customer (
@@ -138,7 +137,7 @@ select account_number
 	, ( random() * (5-1) + 1) :: int as account_type_id
 	, ( random() * (43000-38000) + 38000) :: int as opening_date_id
 	, case when ( random() * (1-0) + 1) :: int = 1 then -1 else ( random() * (55100-44800) + 44800) :: int end as closing_date_id
-from dm.tmp_cust_acct ;
+from dm.b_cust_acct ;
 
 -- ----------------------------------------- dm.d_scorecard -----------------------------
 create table dm.d_scorecard (
@@ -157,23 +156,13 @@ values
 (2, 'sme', -2.6898, 0.4001, -0.38239, 0.02428, -0.20916),
 (3, 'corporate', -3.87972, -1.7869, -0.9631, -0.4121, -1.6514) ;
 
-
--- ----------------------------------------- dm.f_transactions --------------------------
-/*
-create table dm.f_transactions (
-	id serial primary key,
-	date_id int not null,
-	account_number bigint not null,
-	booking_code varchar(2) not null,
-	amount bigint
-);
-
-create table dm.tmp_cust_acct (
+-- ----------------------------------------- dm.b_cust_acct --------------------------
+create table dm.b_cust_acct (
 	customer_id int,
 	account_number int primary key
 );
 
-insert into dm.tmp_cust_acct (customer_id, account_number)
+insert into dm.b_cust_acct (customer_id, account_number)
 values 
 (10001, 11456789),
 (10001, 13555562),
@@ -197,7 +186,17 @@ values
 (40001, 84039601),
 (40001, 97007074),
 (40002, 67224356),
-(40002, 49564892)
+(40002, 49564892) ;
+
+-- ----------------------------------------- dm.f_transactions --------------------------
+/*
+create table dm.f_transactions (
+	id serial primary key,
+	date_id int not null,
+	account_number bigint not null,
+	booking_code varchar(2) not null,
+	amount bigint
+);
 
 create or replace function RandomGet()
 returns int
@@ -232,7 +231,7 @@ select row_number() over (order by amt) as id
 , case when amt < 0 then '05' else concat(0, ( random()*3+1 )::INT ) end as booking_code
 , trunc(((random()*100000 + 1) * sign(amt))::decimal,2) as amount
 from 
-(select distinct customer_id, account_number from dm.tmp_cust_acct order by 1) as c
+(select distinct customer_id, account_number from dm.b_cust_acct order by 1) as c
 cross join generate_series(-50,150) as t(amt) ;
 */
 
@@ -274,8 +273,8 @@ select tmp_lt0.account_number
 		when snap = 1 then '2021-04-30'
 		when snap = 2 then '2021-05-31' end ) :: date as date
 	, case when da.account_type_id in (1,2) then tmp_lt0.ob else tmp_gt0.ob end as ob
-from ( select *, ( random() * (2e7-1e5) - 3e7 ) :: int as ob from dm.tmp_cust_acct ) tmp_lt0
-inner join ( select *, ( random() * (2e7-1e5) + 1e6 ) :: int as ob from dm.tmp_cust_acct ) tmp_gt0 on tmp_gt0.customer_id = tmp_lt0.customer_id and tmp_gt0.account_number = tmp_lt0.account_number
+from ( select *, ( random() * (2e7-1e5) - 3e7 ) :: int as ob from dm.b_cust_acct ) tmp_lt0
+inner join ( select *, ( random() * (2e7-1e5) + 1e6 ) :: int as ob from dm.b_cust_acct ) tmp_gt0 on tmp_gt0.customer_id = tmp_lt0.customer_id and tmp_gt0.account_number = tmp_lt0.account_number
 inner join dm.d_account da on da.account_number = tmp_lt0.account_number
 inner join dm.d_account_type dat on da.account_type_id = dat.id 
 cross join (select snap from generate_series(0,2) as snap) s
