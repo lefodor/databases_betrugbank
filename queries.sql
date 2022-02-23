@@ -36,7 +36,8 @@ from dm.f_account fa
 inner join dm.d_account da on da.account_number = fa.account_number 
 inner join dm.d_account_type dat on dat.id = da.account_type_id 
 inner join dm.d_date dd on dd.id = fa.date_id
-inner join dm.d_customer dc on dc.id = fa.customer_id 
+inner join dm.b_cust_acct bac on bac.account_number = fa.account_number
+inner join dm.d_customer dc on dc.id = bac.customer_id 
 where dat.id in (1,2)
 and dd.date='2021-04-30'
 group by dc.customer_type_name ;
@@ -48,20 +49,22 @@ from dm.f_account fa
 inner join dm.d_account da on da.account_number = fa.account_number 
 inner join dm.d_account_type dat on dat.id = da.account_type_id 
 inner join dm.d_date dd on dd.id = fa.date_id
-inner join dm.d_customer dc on dc.id = fa.customer_id 
+inner join dm.b_cust_acct bac on bac.account_number = fa.account_number
+inner join dm.d_customer dc on dc.id = bac.customer_id 
 where dat.id not in (1,2)
 and dd.date='2021-04-30'
 group by dc.customer_type_name ;
 
 -- ----------------------------------------- q#06 ----------------------------------
 select dc.country_iso
-	, count( distinct case when dat.name in ('bankaccount','savingaccount') then fa.customer_id else null end ) as cnt_deposit_customers
-	, sum( case when dat.name in ('bankaccount','savingaccount') then balance else 0 end ) as sum_deposit
+	, count( distinct case when dat.name in ('bankaccount','savingaccount') then dc.id else null end ) as cnt_deposit_customers
+	, sum( case when dat.name in ('bankaccount','savingaccount') then fa.balance else 0 end ) as sum_deposit
 from dm.f_account fa
 inner join dm.d_account da on da.account_number = fa.account_number 
 inner join dm.d_account_type dat on dat.id = da.account_type_id 
 inner join dm.d_date dd on dd.id = fa.date_id
-inner join dm.d_customer dc on dc.id = fa.customer_id 
+inner join dm.b_cust_acct bac on bac.account_number = fa.account_number
+inner join dm.d_customer dc on dc.id = bac.customer_id 
 where dd.date='2021-04-30'
 group by dc.country_iso ;
 
@@ -71,7 +74,8 @@ select dc.id as customer_id
 from dm.f_account fa
 inner join dm.f_arrears far on far.date_id = fa.date_id and far.account_number = fa.account_number
 inner join dm.d_date dd on dd.id = fa.date_id
-inner join dm.d_customer dc on dc.id = fa.customer_id
+inner join dm.b_cust_acct bac on bac.account_number = fa.account_number
+inner join dm.d_customer dc on dc.id = bac.customer_id 
 where dd.date>='2021-03-31' and dd.date<='2021-05-31'
 group by dc.id ;
 
@@ -83,12 +87,12 @@ select distinct dd.date, dc.customer_type_name, dc.country_iso, ds.intercept, fs
 from dm.f_scoring fs
 inner join dm.d_scorecard ds on ds.id = fs.scorecard_id
 inner join dm.d_date dd on dd.id = fs.date_id 
-inner join dm.f_account fa on fa.customer_id = fs.customer_id and fa.date_id = fs.date_id
-inner join dm.d_account da on da.account_number = fa.account_number
-inner join dm.d_account_type dat on dat.id = da.account_type_id 
 inner join dm.d_customer dc on dc.id = fs.customer_id
+inner join dm.b_cust_acct bac on bac.customer_id = fs.customer_id
+inner join dm.d_account da on da.account_number = bac.account_number
+inner join dm.d_account_type dat on dat.id = da.account_type_id 
 where dd.date>='2021-03-31' and dd.date<='2021-05-31'
-and dat.name not in('bankaccount','savingaccount')) v
+and dat.name not in('bankaccount','savingaccount') ) v
 group by date;
 
 -- ----------------------------------------- q#09 ----------------------------------

@@ -233,7 +233,6 @@ cross join generate_series(-50,150) as t(amt) ;
 */
 
 -- ----------------------------------------- dm.f_account -------------------------------
-drop table dm.f_account;
 create table dm.f_account (
 	date_id int not null,
 	account_number int not null,
@@ -242,6 +241,7 @@ create table dm.f_account (
 	balance int
 ) ;
 alter table dm.f_account add primary key ( date_id, account_number );
+alter table dm.f_account drop column customer_id; 
 
 insert into dm.f_account
 select 
@@ -343,6 +343,7 @@ create table dm.f_scoring (
 	var3 numeric,
 	var4 numeric
 ) ;
+alter table dm.f_scoring add primary key ( date_id, customer_id );
 
 insert into dm.f_scoring
 select dd.id as date_id
@@ -366,12 +367,16 @@ order by exp(ds.intercept + fs.var1 + fs.var2 + fs.var3 + fs.var4) / (1 + exp(ds
 ;
 */
 
+-- ----------------------------------------- dm.b_cust_acct -----------------------------
+alter table dm.b_cust_acct
+add foreign key (customer_id) references dm.d_customer(id);
+
+alter table dm.b_cust_acct
+add foreign key (account_number) references dm.d_account(account_number);
+
 -- ----------------------------------------- dm.d_account -------------------------------
 alter table dm.d_account
 add foreign key (account_type_id) references dm.d_account_type(id);
-
-alter table dm.d_account
-add foreign key (account_number) references dm.b_cust_acct(account_number);
 
 -- ----------------------------------------- dm.d_customer ------------------------------
 alter table dm.d_customer
@@ -382,7 +387,7 @@ alter table dm.f_account
 add foreign key (date_id) references dm.d_date(id);
 
 alter table dm.f_account
-add foreign key (account_number) references dm.b_cust_acct(account_number);
+add foreign key (account_number) references dm.d_account(account_number);
 
 alter table dm.f_account
 add foreign key (interest_rate_id) references dm.d_interest_rate(id);
@@ -392,24 +397,24 @@ alter table dm.f_transactions
 add foreign key (date_id) references dm.d_date(id);
 
 alter table dm.f_transactions
-add foreign key (account_number) references dm.b_cust_acct(account_number);
+add foreign key (booking_code_id) references dm.d_booking_code(id);
 
 alter table dm.f_transactions
-add foreign key (booking_code_id) references dm.d_booking_code(id);
+add foreign key (account_number) references dm.d_account(account_number);
 
 -- ----------------------------------------- dm.f_expected_payment ----------------------
 alter table dm.f_expected_payment
 add foreign key (date_id) references dm.d_date(id);
 
 alter table dm.f_expected_payment
-add foreign key (account_number) references dm.b_cust_acct(account_number);
+add foreign key (account_number) references dm.d_account(account_number);
 
 -- ----------------------------------------- dm.f_arrears -------------------------------
 alter table dm.f_arrears
 add foreign key (date_id) references dm.d_date(id);
 
 alter table dm.f_arrears
-add foreign key (account_number) references dm.b_cust_acct(account_number);
+add foreign key (account_number) references dm.d_account(account_number);
 
 -- ----------------------------------------- dm.f_scoring -------------------------------
 alter table dm.f_scoring
