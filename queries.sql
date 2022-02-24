@@ -41,6 +41,39 @@ order by
 
 -- ======================================================================================
 -- ----------------------------------------- q#05 ---------------------------------------
+select
+	dc.customer_type_name,
+	case
+		when dat.name in ('bankaccount', 'savingaccount')
+		then 'deposit'
+		else 'loan'
+	end as product_type,
+	sum(balance) as exposure
+from
+	dm.f_account fa
+inner join dm.d_account da on
+	da.account_number = fa.account_number
+inner join dm.d_account_type dat on
+	dat.id = da.account_type_id
+inner join dm.d_date dd on
+	dd.id = fa.date_id
+inner join dm.b_cust_acct bca on
+	bca.account_number = fa.account_number
+inner join dm.d_customer dc on
+	dc.id = bca.customer_id
+where
+	dd.date = '2021-04-30'
+group by
+	dc.customer_type_name,
+	case
+		when dat.name in ('bankaccount', 'savingaccount')
+		then 'deposit'
+		else 'loan'
+	end
+order by
+	1,
+	2;
+
 -- deposit type product balance
 select
 	dc.customer_type_name,
