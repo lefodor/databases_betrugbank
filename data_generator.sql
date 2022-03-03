@@ -5,18 +5,18 @@
 -- 	reset schema and generate random data
 -- =============================================
 
--- reset schema
+-- create schema
 drop schema if exists dm cascade;
 create schema if not exists dm;
 
 -- ----------------------------------------- dm.d_date ----------------------------------
 create table dm.d_date (
-	id serial primary key,
+	id int identity(1,1) not null primary key,
 	date_year int not null,
 	date_month int not null,
 	date_day int not null,
 	date date not null,
-	is_end_of_month bool not null
+	is_end_of_month bit not null
 );
 
 insert
@@ -31,8 +31,8 @@ values(-1,
 1001,
 1,
 1,
-'1001-01-01'::date,
-false);
+cast('1001-01-01' as date),
+0);
 
 insert
 	into
